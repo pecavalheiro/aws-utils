@@ -1,12 +1,15 @@
-#!/usr/bin/ruby
+#!/usr/local/bin/ruby
+
+# http://docs.aws.amazon.com/sdkforruby/api/Aws/EC2/Client.html#describe_security_groups-instance_method
 
 require 'aws-sdk'
+# require 'pp'
 require 'open-uri'
 
-ec2 = Aws::EC2::Client.new(region:'AWS_REGION', credentials: Aws::Credentials.new('ACCESS_KEY_ID', 'SECRET_KEY'))
+ec2 = Aws::EC2::Client.new(region:'sa-east-1', credentials: Aws::Credentials.new('AKIAJMC3VXFT3OFBD3HA', 'y7gFB8enJePm3iz72/X7oMEsGzxjM9104W7iAsia'))
 
 remote_ip = open('http://whatismyip.akamai.com').read
-security_groups = {'SECURITY_GROUP_ID'=>{'protocol' =>'tcp','from_port'=>22,'to_port'=>22}}
+security_groups = {'sg-540f9031'=>{'protocol' =>'tcp','from'=>22,'to'=>22}}
 ips = [remote_ip]
 
 begin
@@ -20,7 +23,7 @@ begin
       group.ip_permissions.each do |ip_permission|
         ip_permission.ip_ranges.each do |ip|
           ec2.revoke_security_group_ingress({
-            # dry_run: true, #simulation
+            # dry_run: true,
             group_id: group.group_id,
             ip_protocol: ip_permission.ip_protocol,
             from_port: ip_permission.from_port,
@@ -34,16 +37,17 @@ begin
   security_groups.each do |group_id, security_group|
     ips.each do |ip|
       ec2.authorize_security_group_ingress({
-        # dry_run: true, #simulation
+        # dry_run: true,
         group_id: group_id,
         ip_protocol: security_group['protocol'],
-        from_port:  security_group['from_port'],
-        to_port:  security_group['to_port'],
+        from_port:  security_group['from'],
+        to_port:  security_group['to'],
         cidr_ip:  "#{ip}/32",
       })
     end
   end
 
 rescue Aws::EC2::Errors::ServiceError => e
+  puts 'deu merda'
   puts e
 end
